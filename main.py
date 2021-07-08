@@ -4,7 +4,7 @@
 import re
 import math
 import numpy as np
-from PIL import Image, ImageOps, ImageDraw
+from PIL import Image, ImageOps, ImageDraw, ImageColor
 from queue import PriorityQueue
 from typing import Callable, Dict, DefaultDict, Optional
 from collections import defaultdict
@@ -119,13 +119,23 @@ def real_cost(map: np.ndarray, from_pos: Point, to_pos: Point) -> float:
     ) * abs(delta)
 
 
+def euclid(map: np.ndarray, from_pos: Point, to_pos: Point) -> float:
+    x1, y1 = from_pos
+    x2, y2 = to_pos
+    return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+
+def lame(map: np.ndarray, from_pos: Point, to_pos: Point) -> float:
+    return 0
+
+
 real_cost(map, start, goal)
 
 #%%
 custom_constraint = [(limit_constraint, {"limit": limit})]
 a_star = AStar(
     map,
-    real_cost,
+    lame,
     real_cost,
     grid_neighbors,
     moveset,
@@ -133,13 +143,39 @@ a_star = AStar(
 )
 
 # %%
+from functools import wraps
+from time import time
 
-import time
 
-start_time = time.time()
-path, total_cost = a_star.search(start, goal)
-stop_time = time.time()
-hours, rem = divmod(stop_time - start_time, 3600)
-minutes, seconds = divmod(rem, 60)
-print("Elapsed: {:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
+def timing(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        print("Elapsed: %2.4f sec" % (te - ts))
+        return result
+
+    return wrap
+
+
+# hours, rem = divmod(stop_time - start_time, 3600)
+# minutes, seconds = divmod(rem, 60)
+# print("Elapsed: {:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
+path, total_cost = timing(a_star.search)((0, 0), (511, 511))
 print(f"Total cost: {total_cost}")
+
+# %%
+def save_to_img(img: Image.Image, path: list[Point], show=True, save_to_file=None):
+    for point in path:
+        img.putpixel(point, ImageColor.getrgb("red"))
+    if show:
+        img.show()
+    if save_to_file:
+        img.save(save_to_file)
+
+
+save_to_img(img.copy(), path)
+
+# %%
+euclid(map, (0, 0), (1, 1))

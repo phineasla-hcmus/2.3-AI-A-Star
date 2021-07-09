@@ -25,12 +25,18 @@ start, goal, limit
 img = Image.open("./img/map.bmp")
 grayscale = ImageOps.grayscale(Image.open("./img/map.bmp"))
 map = np.array(grayscale).astype(int)
+map
 
 # %%
 def limit_constraint(obj, cur: Point, neighbor: Point, **kargs) -> bool:
     limit = kargs["limit"]
     map = obj.map
     return abs(map[neighbor] - map[cur]) <= limit
+    # if abs(map[neighbor] - map[cur]) <= limit:
+    #     return True
+    # else:
+    #     print(neighbor, cur)
+    #     return False
 
 
 def in_bounds_constraint(obj, neighbor: Point) -> bool:
@@ -135,7 +141,7 @@ real_cost(map, start, goal)
 custom_constraint = [(limit_constraint, {"limit": limit})]
 a_star = AStar(
     map,
-    lame,
+    euclid,
     real_cost,
     grid_neighbors,
     moveset,
@@ -162,7 +168,8 @@ def timing(f):
 # hours, rem = divmod(stop_time - start_time, 3600)
 # minutes, seconds = divmod(rem, 60)
 # print("Elapsed: {:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
-path, total_cost = timing(a_star.search)((0, 0), (511, 511))
+print(f"Search from {start} to {goal} with limit = {limit}")
+path, total_cost = timing(a_star.search)(start, goal)
 print(f"Total cost: {total_cost}")
 
 # %%

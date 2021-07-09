@@ -32,11 +32,6 @@ def limit_constraint(obj, cur: Point, neighbor: Point, **kargs) -> bool:
     limit = kargs["limit"]
     map = obj.map
     return abs(map[neighbor] - map[cur]) <= limit
-    # if abs(map[neighbor] - map[cur]) <= limit:
-    #     return True
-    # else:
-    #     print(neighbor, cur)
-    #     return False
 
 
 def in_bounds_constraint(obj, neighbor: Point) -> bool:
@@ -90,7 +85,7 @@ class AStar:
         came_from: Dict[Point, Optional[Point]] = {start: None}
         g_cost: DefaultDict[Point, float] = defaultdict(lambda: np.inf)
         f_cost: Dict[Point, float] = {}
-
+        examined_nodes = 0
         open_set.put([0, start])
         g_cost[start] = 0
         f_cost[start] = 0
@@ -103,8 +98,11 @@ class AStar:
                         came_from, start, goal, result_order_from_start
                     ),
                     f_cost[goal],
+                    examined_nodes,
                 ]
             for next in self.neighbors(self, cur):
+                if next not in g_cost:
+                    examined_nodes += 1
                 new_g_cost = g_cost[cur] + self.g(self.map, cur, next)
                 if new_g_cost < g_cost[next]:
                     g_cost[next] = new_g_cost
@@ -112,17 +110,22 @@ class AStar:
                     came_from[next] = cur  # Set "next neighbor" parent to cur
                     open_set.put([f_cost[next], next])
         # Open set is empty but goal was never reached
-        return "LOL FAILED"
+        return "LOL FAILED", None, None
 
 
 # %%
-def real_cost(map: np.ndarray, from_pos: Point, to_pos: Point) -> float:
-    x1, y1 = from_pos
-    x2, y2 = to_pos
-    delta = map[to_pos] - map[from_pos]
+def real_cost(map: np.ndarray, _from: Point, _to: Point) -> float:
+    x1, y1 = _from
+    x2, y2 = _to
+    delta = map[_from] - map[_to]
     return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) + (
         0.5 * np.sign(delta) + 1
     ) * abs(delta)
+
+
+real_cost(map, start, goal)
+
+# %%
 
 
 def euclid(map: np.ndarray, from_pos: Point, to_pos: Point) -> float:
@@ -141,7 +144,7 @@ real_cost(map, start, goal)
 custom_constraint = [(limit_constraint, {"limit": limit})]
 a_star = AStar(
     map,
-    euclid,
+    real_cost,
     real_cost,
     grid_neighbors,
     moveset,
@@ -169,9 +172,10 @@ def timing(f):
 # minutes, seconds = divmod(rem, 60)
 # print("Elapsed: {:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
 print(f"Search from {start} to {goal} with limit = {limit}")
-path, total_cost = timing(a_star.search)(start, goal)
+path, total_cost, examined_nodes = timing(a_star.search)(start, goal)
 print(f"Total cost: {total_cost}")
-
+print(f"Examined nodes: {examined_nodes}")
+print(f"Path nodes: {len(path)}")
 # %%
 def save_to_img(img: Image.Image, path: list[Point], show=True, save_to_file=None):
     for point in path:
@@ -185,4 +189,4 @@ def save_to_img(img: Image.Image, path: list[Point], show=True, save_to_file=Non
 save_to_img(img.copy(), path)
 
 # %%
-euclid(map, (0, 0), (1, 1))
+# euclid(map, (0, 0), (1, 1))

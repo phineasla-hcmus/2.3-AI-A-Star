@@ -13,20 +13,9 @@ Point = tuple[int, int]
 CostFunc = Callable[[np.ndarray, Point, Point], float]
 
 # NW, N, NE, W, E, SW, S, SE
-moveset = ((-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1))
-
-with open("input.txt", "r") as f:
-    start, goal, [limit] = [
-        Point(int(i) for i in re.findall(r"\d+", f.readline())) for j in range(3)
-    ]
-start, goal, limit
-
-# %%
-img = Image.open("./img/map.bmp")
-grayscale = ImageOps.grayscale(Image.open("./img/map.bmp"))
-map = np.array(grayscale).astype(int)
-map
-
+EIGHT_DIR = ((-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1))
+# N, W, E, S
+FOUR_DIR = ((0, -1), (-1, 0), (1, 0), (0, 1))
 # %%
 def limit_constraint(obj, cur: Point, neighbor: Point, **kargs) -> bool:
     limit = kargs["limit"]
@@ -56,11 +45,11 @@ class AStar:
     def __init__(
         self,
         map: np.ndarray,
-        heuristic: CostFunc,
-        real_cost: CostFunc,
         neighbor_finder,
         moveset: tuple[Point],
-        custom_constraint,
+        heuristic: CostFunc,
+        real_cost: CostFunc,
+        custom_constraint=None,
     ) -> None:
         self.h = heuristic
         self.g = real_cost
@@ -85,7 +74,6 @@ class AStar:
         came_from: Dict[Point, Optional[Point]] = {start: None}
         g_cost: DefaultDict[Point, float] = defaultdict(lambda: np.inf)
         f_cost: Dict[Point, float] = {}
-        examined_nodes = 0
         open_set.put([0, start])
         g_cost[start] = 0
         f_cost[start] = 0
@@ -97,12 +85,10 @@ class AStar:
                     self.reconstruct_path(
                         came_from, start, goal, result_order_from_start
                     ),
-                    f_cost[goal],
-                    examined_nodes,
+                    g_cost,
+                    f_cost,
                 ]
             for next in self.neighbors(self, cur):
-                if next not in g_cost:
-                    examined_nodes += 1
                 new_g_cost = g_cost[cur] + self.g(self.map, cur, next)
                 if new_g_cost < g_cost[next]:
                     g_cost[next] = new_g_cost
@@ -110,7 +96,7 @@ class AStar:
                     came_from[next] = cur  # Set "next neighbor" parent to cur
                     open_set.put([f_cost[next], next])
         # Open set is empty but goal was never reached
-        return "LOL FAILED", None, None
+        raise Exception("No solution found")
 
 
 # %%
@@ -123,11 +109,7 @@ def real_cost(map: np.ndarray, _from: Point, _to: Point) -> float:
     ) * abs(delta)
 
 
-real_cost(map, start, goal)
-
 # %%
-
-
 def euclid(map: np.ndarray, from_pos: Point, to_pos: Point) -> float:
     x1, y1 = from_pos
     x2, y2 = to_pos
@@ -138,18 +120,16 @@ def lame(map: np.ndarray, from_pos: Point, to_pos: Point) -> float:
     return 0
 
 
-real_cost(map, start, goal)
-
-#%%
+# %%
+with open("input.txt", "r") as f:
+    start, goal, [limit] = [
+        Point(int(i) for i in re.findall(r"\d+", f.readline())) for j in range(3)
+    ]
 custom_constraint = [(limit_constraint, {"limit": limit})]
-a_star = AStar(
-    map,
-    real_cost,
-    real_cost,
-    grid_neighbors,
-    moveset,
-    custom_constraint,
-)
+
+img = Image.open("./img/map.bmp")
+grayscale = ImageOps.grayscale(Image.open("./img/map.bmp"))
+map = np.array(grayscale).astype(int)
 
 # %%
 from functools import wraps
@@ -168,16 +148,7 @@ def timing(f):
     return wrap
 
 
-# hours, rem = divmod(stop_time - start_time, 3600)
-# minutes, seconds = divmod(rem, 60)
-# print("Elapsed: {:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
-print(f"Search from {start} to {goal} with limit = {limit}")
-path, total_cost, examined_nodes = timing(a_star.search)(start, goal)
-print(f"Total cost: {total_cost}")
-print(f"Examined nodes: {examined_nodes}")
-print(f"Path nodes: {len(path)}")
-# %%
-def save_to_img(img: Image.Image, path: list[Point], show=True, save_to_file=None):
+def display_to_img(img: Image.Image, path: list[Point], show=True, save_to_file=None):
     for point in path:
         img.putpixel(point, ImageColor.getrgb("red"))
     if show:
@@ -186,7 +157,38 @@ def save_to_img(img: Image.Image, path: list[Point], show=True, save_to_file=Non
         img.save(save_to_file)
 
 
-save_to_img(img.copy(), path)
+def test(heuristic: CostFunc, timer=True, show=True, save=None):
+    a_star = AStar(
+        map,
+        grid_neighbors,
+        EIGHT_DIR,
+        heuristic,
+        real_cost,
+        custom_constraint,
+    )
+    try:
+        path, g_cost, f_cost = (
+            timing(a_star.search)(start, goal) if timer else a_star.search(start, goal)
+        )
+        print(
+            f"""[{heuristic.__name__}] From {start} to {goal} with limit = {limit}
+    Total cost: {f_cost[goal]}
+    Examined nodes: {len(f_cost)}
+    Path nodes: {len(g_cost)}
+    """
+        )
+        if show or save:
+            for point in f_cost.keys():
+                img.putpixel(point, ImageColor.getrgb("yellow"))
+            for point in path:
+                img.putpixel(point, ImageColor.getrgb("red"))
+        if show:
+            img.show()
+        if save:
+            img.save(save)
+    except Exception as e:
+        print(e)
+
 
 # %%
-# euclid(map, (0, 0), (1, 1))
+test(euclid)

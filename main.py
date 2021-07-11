@@ -4,7 +4,7 @@
 import re
 import math
 import numpy as np
-from PIL import Image, ImageOps, ImageDraw, ImageColor
+from PIL import Image, ImageOps, ImageColor
 from queue import PriorityQueue
 from typing import Callable, Dict, DefaultDict, Optional
 from collections import defaultdict
@@ -20,7 +20,7 @@ FOUR_DIR = ((0, -1), (-1, 0), (1, 0), (0, 1))
 def limit_constraint(obj, cur: Point, neighbor: Point, **kargs) -> bool:
     limit = kargs["limit"]
     map = obj.map
-    return abs(map[neighbor] - map[cur]) <= limit
+    return abs(map[cur] - map[neighbor]) <= limit
 
 
 def in_bounds_constraint(obj, neighbor: Point) -> bool:
@@ -70,16 +70,16 @@ class AStar:
         return path
 
     def search(self, start: Point, goal: Point, result_order_from_start: bool = False):
-        open_set = PriorityQueue()
+        fringe = PriorityQueue()
+        fringe.put([0, start])
         came_from: Dict[Point, Optional[Point]] = {start: None}
         g_cost: DefaultDict[Point, float] = defaultdict(lambda: np.inf)
-        f_cost: Dict[Point, float] = {}
-        open_set.put([0, start])
         g_cost[start] = 0
-        f_cost[start] = 0
+        f_cost: Dict[Point, float] = {start: 0}
 
-        while not open_set.empty():
-            cur = open_set.get()[1]
+        while not fringe.empty():
+            cur = fringe.get()[1]
+            # cur_to_goal = np.array([i - j for (i, j) in zip(cur, goal)])
             if cur == goal:
                 return [
                     self.reconstruct_path(
@@ -91,33 +91,15 @@ class AStar:
             for next in self.neighbors(self, cur):
                 new_g_cost = g_cost[cur] + self.g(self.map, cur, next)
                 if new_g_cost < g_cost[next]:
+                    # new_to_goal = np.array([i - j for (i, j) in zip(next, goal)])
+                    # cross = abs(np.cross(cur_to_goal, new_to_goal))
+                    # f_cost[next] += cross * 0.001
                     g_cost[next] = new_g_cost
                     f_cost[next] = new_g_cost + self.h(self.map, next, goal)
                     came_from[next] = cur  # Set "next neighbor" parent to cur
-                    open_set.put([f_cost[next], next])
+                    fringe.put([f_cost[next], next])
         # Open set is empty but goal was never reached
         raise Exception("No solution found")
-
-
-# %%
-def real_cost(map: np.ndarray, _from: Point, _to: Point) -> float:
-    x1, y1 = _from
-    x2, y2 = _to
-    delta = map[_from] - map[_to]
-    return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) + (
-        0.5 * np.sign(delta) + 1
-    ) * abs(delta)
-
-
-# %%
-def euclid(map: np.ndarray, from_pos: Point, to_pos: Point) -> float:
-    x1, y1 = from_pos
-    x2, y2 = to_pos
-    return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-
-
-def lame(map: np.ndarray, from_pos: Point, to_pos: Point) -> float:
-    return 0
 
 
 # %%
@@ -130,6 +112,42 @@ custom_constraint = [(limit_constraint, {"limit": limit})]
 img = Image.open("./img/map.bmp")
 grayscale = ImageOps.grayscale(Image.open("./img/map.bmp"))
 map = np.array(grayscale).astype(int)
+# %%
+def real_cost(map: np.ndarray, _from: Point, _to: Point) -> float:
+    x1, y1 = _from
+    x2, y2 = _to
+    delta = map[_from] - map[_to]
+    return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) + (
+        0.5 * np.sign(delta) + 1
+    ) * abs(delta)
+
+
+# %%
+def euclid(map: np.ndarray, _from: Point, _to: Point) -> float:
+    x1, y1 = _from
+    x2, y2 = _to
+    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+
+def euclid_squared(map: np.ndarray, _from: Point, _to: Point) -> float:
+    return (_from[0] - _to[0]) ** 2 + (_from[1] - _to[1]) ** 2
+
+
+def lame(map: np.ndarray, _from: Point, _to: Point) -> float:
+    return 0
+
+
+def pythagoras(map: np.ndarray, _from: Point, _to: Point) -> float:
+    x1, y1 = _from
+    x2, y2 = _to
+    a = (x1 - x2) ** 2 + (y1 - y2) ** 2
+    b = abs(map[_from] - map[_to])
+    return math.sqrt(a + b ** 2)
+
+
+# args = (map, start, goal)
+# for func in [real_cost, euclid, pythagoras]:
+#     print(func(*args))
 
 # %%
 from functools import wraps
@@ -174,7 +192,7 @@ def test(heuristic: CostFunc, timer=True, show=True, save=None):
             f"""[{heuristic.__name__}] From {start} to {goal} with limit = {limit}
     Total cost: {f_cost[goal]}
     Examined nodes: {len(f_cost)}
-    Path nodes: {len(g_cost)}
+    Path nodes: {len(path)}
     """
         )
         if show or save:
@@ -191,4 +209,13 @@ def test(heuristic: CostFunc, timer=True, show=True, save=None):
 
 
 # %%
-test(euclid)
+test(real_cost)
+
+# %%
+# import numpy as np
+
+# v1 = np.array([j - i for (i, j) in zip([0, 0], [1, 1])])
+# v2 = np.array([j - i for (i, j) in zip([1, 1], [3, 2])])
+# print(v1 / v2)
+
+# %%

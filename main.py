@@ -133,7 +133,11 @@ def euclid_squared(map: np.ndarray, _from: Point, _to: Point) -> float:
     return (_from[0] - _to[0]) ** 2 + (_from[1] - _to[1]) ** 2
 
 
-def lame(map: np.ndarray, _from: Point, _to: Point) -> float:
+def manhattan(map: np.ndarray, _from: Point, _to: Point) -> float:
+    return abs(_from[0] - _to[0]) + abs(_from[1] - _to[1])
+
+
+def ucs_fallback(map: np.ndarray, _from: Point, _to: Point) -> float:
     return 0
 
 
@@ -141,13 +145,9 @@ def pythagoras(map: np.ndarray, _from: Point, _to: Point) -> float:
     x1, y1 = _from
     x2, y2 = _to
     a = (x1 - x2) ** 2 + (y1 - y2) ** 2
-    b = abs(map[_from] - map[_to])
-    return math.sqrt(a + b ** 2)
+    b = (map[_from] - map[_to]) ** 2
+    return math.sqrt(a + b)
 
-
-# args = (map, start, goal)
-# for func in [real_cost, euclid, pythagoras]:
-#     print(func(*args))
 
 # %%
 from functools import wraps
@@ -209,13 +209,4 @@ def test(heuristic: CostFunc, timer=True, show=True, save=None):
 
 
 # %%
-test(real_cost)
-
-# %%
-# import numpy as np
-
-# v1 = np.array([j - i for (i, j) in zip([0, 0], [1, 1])])
-# v2 = np.array([j - i for (i, j) in zip([1, 1], [3, 2])])
-# print(v1 / v2)
-
-# %%
+test(euclid)

@@ -16,16 +16,29 @@ CostFunc = Callable[[np.ndarray, Point, Point], float]
 EIGHT_DIR = ((-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1))
 # N, W, E, S
 FOUR_DIR = ((0, -1), (-1, 0), (1, 0), (0, 1))
+
+with open("input.txt", "r") as f:
+    start, goal, [limit] = [
+        Point(int(i) for i in re.findall(r"\d+", f.readline())) for j in range(3)
+    ]
+
+img = Image.open("./img/map.bmp")
+# img = Image.open("./img/test.png")
+grayscale = ImageOps.grayscale(img)
+map = np.array(grayscale).astype(int)
+
 # %%
 def limit_constraint(obj, cur: Point, neighbor: Point, **kargs) -> bool:
+    x1, y1 = cur
+    x2, y2 = neighbor
     limit = kargs["limit"]
     map = obj.map
-    return abs(map[cur] - map[neighbor]) <= limit
+    return abs(map[y1, x1] - map[y2, x2]) <= limit
 
 
 def in_bounds_constraint(obj, neighbor: Point) -> bool:
     x, y = neighbor
-    x_limit, y_limit = obj.map.shape
+    y_limit, x_limit = obj.map.shape
     return 0 <= x < x_limit and 0 <= y < y_limit
 
 
@@ -103,26 +116,20 @@ class AStar:
 
 
 # %%
-with open("input.txt", "r") as f:
-    start, goal, [limit] = [
-        Point(int(i) for i in re.findall(r"\d+", f.readline())) for j in range(3)
-    ]
-custom_constraint = [(limit_constraint, {"limit": limit})]
-
-img = Image.open("./img/map.bmp")
-grayscale = ImageOps.grayscale(Image.open("./img/map.bmp"))
-map = np.array(grayscale).astype(int)
-# %%
 def real_cost(map: np.ndarray, _from: Point, _to: Point) -> float:
     x1, y1 = _from
     x2, y2 = _to
-    delta = map[_from] - map[_to]
+    delta = map[y1, x1] - map[y2, x2]
     return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) + (
         0.5 * np.sign(delta) + 1
     ) * abs(delta)
 
 
 # %%
+def manhattan(map: np.ndarray, _from: Point, _to: Point) -> float:
+    return abs(_from[0] - _to[0]) + abs(_from[1] - _to[1])
+
+
 def euclid(map: np.ndarray, _from: Point, _to: Point) -> float:
     x1, y1 = _from
     x2, y2 = _to
@@ -133,25 +140,33 @@ def euclid_squared(map: np.ndarray, _from: Point, _to: Point) -> float:
     return (_from[0] - _to[0]) ** 2 + (_from[1] - _to[1]) ** 2
 
 
-def manhattan(map: np.ndarray, _from: Point, _to: Point) -> float:
-    return abs(_from[0] - _to[0]) + abs(_from[1] - _to[1])
-
-
 def ucs_fallback(map: np.ndarray, _from: Point, _to: Point) -> float:
     return 0
+
+
+def chebyshev(map: np.ndarray, _from: Point, _to: Point) -> float:
+    return max(abs(_from[0] - _to[0]), abs(_from[1] - _to[1]))
+
+
+def octile(map: np.ndarray, _from: Point, _to: Point) -> float:
+    dx = abs(_from[0] - _to[0])
+    dy = abs(_from[1] - _to[1])
+    return dx + dy + (math.sqrt(2) - 2) * min(dx, dy)
 
 
 def pythagoras(map: np.ndarray, _from: Point, _to: Point) -> float:
     x1, y1 = _from
     x2, y2 = _to
     a = (x1 - x2) ** 2 + (y1 - y2) ** 2
-    b = (map[_from] - map[_to]) ** 2
+    b = (map[y1, x1] - map[y2, x2]) ** 2
     return math.sqrt(a + b)
 
 
 # %%
 from functools import wraps
 from time import time
+
+custom_constraint = [(limit_constraint, {"limit": limit})]
 
 
 def timing(f):

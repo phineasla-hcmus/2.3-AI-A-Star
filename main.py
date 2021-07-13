@@ -148,18 +148,48 @@ def chebyshev(map: np.ndarray, _from: Point, _to: Point) -> float:
     return max(abs(_from[0] - _to[0]), abs(_from[1] - _to[1]))
 
 
+# Don't know how this works >-<
+def chebyshev_3d(map: np.ndarray, _from: Point, _to: Point) -> float:
+    return max(
+        abs(_from[0] - _to[0]),
+        abs(_from[1] - _to[1]),
+        abs(map[_from[1], _from[0]] - map[_to[1], _to[0]]),
+    )
+
+
 def octile(map: np.ndarray, _from: Point, _to: Point) -> float:
     dx = abs(_from[0] - _to[0])
     dy = abs(_from[1] - _to[1])
     return dx + dy + (math.sqrt(2) - 2) * min(dx, dy)
 
 
-def pythagoras(map: np.ndarray, _from: Point, _to: Point) -> float:
+def euclid_3d(map: np.ndarray, _from: Point, _to: Point) -> float:
     x1, y1 = _from
     x2, y2 = _to
     a = (x1 - x2) ** 2 + (y1 - y2) ** 2
     b = (map[y1, x1] - map[y2, x2]) ** 2
     return math.sqrt(a + b)
+
+
+def diagonal_3d(map: np.ndarray, _from: Point, _to: Point) -> float:
+    D1, D2, D3 = (1, math.sqrt(2), 1)
+    x1, y1 = _from
+    z1 = map[y1, x1]
+    x2, y2 = _to
+    z2 = map[y2, x2]
+    dx, dy, dz = [abs(a - b) for a, b in ((x1, x2), (y1, y2), (z1, z2))]
+    dmin = min(dx, dy, dz)
+    dmax = max(dx, dy, dz)
+    dmid = dx + dy + dz - dmin - dmax
+    return (D3 - D2) * dmin + (D2 - D1) * dmid + D1 * dmax
+
+
+def weighted_manhattan(map: np.ndarray, _from: Point, _to: Point) -> float:
+    x1, y1 = _from
+    z1 = map[y1, x1]
+    x2, y2 = _to
+    z2 = map[y2, x2]
+    return sum(abs(a - b) / (a + b) for a, b in ((x1, x2), (y1, y2), (z1, z2)))
 
 
 # %%
@@ -190,7 +220,7 @@ def display_to_img(img: Image.Image, path: list[Point], show=True, save_to_file=
         img.save(save_to_file)
 
 
-def test(heuristic: CostFunc, timer=True, show=True, save=None):
+def test(heuristic: CostFunc, start, goal, timer=True, show=True, save=None):
     a_star = AStar(
         map,
         grid_neighbors,
@@ -211,8 +241,9 @@ def test(heuristic: CostFunc, timer=True, show=True, save=None):
     """
         )
         if show or save:
-            for point in f_cost.keys():
-                img.putpixel(point, ImageColor.getrgb("yellow"))
+            # for point in f_cost.keys():
+            #     color = ImageColor.getrgb("yellow")
+            #     img.putpixel(point, color)
             for point in path:
                 img.putpixel(point, ImageColor.getrgb("red"))
         if show:
@@ -224,4 +255,33 @@ def test(heuristic: CostFunc, timer=True, show=True, save=None):
 
 
 # %%
-test(euclid)
+s = (0, 255)
+g = (255, 255)
+test(diagonal_3d, s, g, show=True)
+print(real_cost(map, s, g))
+print(euclid(map, s, g))
+
+# %%
+# def limit_constraint(map, cur: Point, neighbor: Point, **kargs) -> bool:
+#     x1, y1 = cur
+#     x2, y2 = neighbor
+#     limit = kargs["limit"]
+#     return abs(map[y1, x1] - map[y2, x2]) <= limit
+
+
+# def in_bounds_constraint(map, neighbor: Point) -> bool:
+#     x, y = neighbor
+#     y_limit, x_limit = map.shape
+#     return 0 <= x < x_limit and 0 <= y < y_limit
+
+
+# print(f"limit = {limit}")
+# for y in range(map.shape[0]):
+#     for x in range(map.shape[1]):
+#         cur = (x, y)
+#         for move in EIGHT_DIR:
+#             neighbor = tuple(i + j for i, j in zip(cur, move))
+#             if in_bounds_constraint(map, neighbor):
+#                 if not limit_constraint(map, cur, neighbor, limit=limit):
+#                     img.putpixel(neighbor, ImageColor.getrgb("yellow"))
+# img.show()

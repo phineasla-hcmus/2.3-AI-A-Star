@@ -172,7 +172,7 @@ def euclid_3d(map: np.ndarray, _from: Point, _to: Point) -> float:
 
 
 def diagonal_3d(map: np.ndarray, _from: Point, _to: Point) -> float:
-    D1, D2, D3 = (1, math.sqrt(2), 1)
+    D1, D2, D3 = (1, math.sqrt(2), math.sqrt(3))
     x1, y1 = _from
     z1 = map[y1, x1]
     x2, y2 = _to
@@ -257,7 +257,7 @@ def test(heuristic: CostFunc, start, goal, timer=True, show=True, save=None):
 # %%
 s = (0, 255)
 g = (255, 255)
-test(diagonal_3d, s, g, show=True)
+test(real_cost, s, g, show=True)
 print(real_cost(map, s, g))
 print(euclid(map, s, g))
 

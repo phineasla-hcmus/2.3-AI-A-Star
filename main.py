@@ -284,7 +284,7 @@ heuristics = [
 ]
 
 for i, h in enumerate(heuristics):
-    img_dir = f"./out/map{i}.bmp"
-    txt_dir = f"./out/output{i}.txt"
+    img_dir = f"./out/map{i+1}.bmp"
+    txt_dir = f"./out/output{i+1}.txt"
     kwargs = {"heuristic": h, "save_img": img_dir, "save_txt": txt_dir}
     Thread(target=test, kwargs=kwargs).start()

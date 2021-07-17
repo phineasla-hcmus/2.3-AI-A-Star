@@ -6,11 +6,11 @@ import math
 import numpy as np
 from PIL import Image, ImageOps, ImageColor
 from queue import PriorityQueue
-from typing import Callable, Dict, DefaultDict, Optional
+from typing import Callable, Dict, DefaultDict, Generator, Optional
 from collections import defaultdict
 
-Point = tuple[int, int]
-CostFunc = Callable[[np.ndarray, Point, Point], float]
+Node = tuple[int, int]
+CostFunc = Callable[[np.ndarray, Node, Node], float]
 
 # NW, N, NE, W, E, SW, S, SE
 EIGHT_DIR = ((-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1))
@@ -19,7 +19,7 @@ FOUR_DIR = ((0, -1), (-1, 0), (1, 0), (0, 1))
 
 with open("input.txt", "r") as f:
     start, goal, [limit] = [
-        Point(int(i) for i in re.findall(r"\d+", f.readline())) for j in range(3)
+        Node(int(i) for i in re.findall(r"\d+", f.readline())) for j in range(3)
     ]
 
 img = Image.open("./img/map.bmp")
@@ -28,26 +28,27 @@ grayscale = ImageOps.grayscale(img)
 map = np.array(grayscale).astype(int)
 
 # %%
-def limit_constraint(obj, cur: Point, neighbor: Point, **kargs) -> bool:
+def under_limit(map: np.ndarray, cur: Node, neighbor: Node, **kargs) -> bool:
     x1, y1 = cur
     x2, y2 = neighbor
     limit = kargs["limit"]
-    map = obj.map
     return abs(map[y1, x1] - map[y2, x2]) <= limit
 
 
-def in_bounds_constraint(obj, neighbor: Point) -> bool:
+def in_bounds(map: np.ndarray, neighbor: Node) -> bool:
     x, y = neighbor
-    y_limit, x_limit = obj.map.shape
+    y_limit, x_limit = map.shape
     return 0 <= x < x_limit and 0 <= y < y_limit
 
 
-def grid_neighbors(obj, cur: Point):
+def grid_neighbors(map: np.ndarray, cur: Node, moveset, custom_constraint=None):
     neighbors = []
-    for move in obj.moveset:
+    for move in moveset:
         neighbor = tuple(i + j for i, j in zip(cur, move))
-        if in_bounds_constraint(obj, neighbor) and all(
-            f(obj, cur, neighbor, **kwargs) for f, kwargs in obj.constraint
+        if in_bounds(map, neighbor) and all(
+            iter()
+            if custom_constraint is None
+            else (f(map, cur, neighbor, **kwargs) for f, kwargs in custom_constraint)
         ):
             neighbors.append(neighbor)
     return neighbors
@@ -59,7 +60,7 @@ class AStar:
         self,
         map: np.ndarray,
         neighbor_finder,
-        moveset: tuple[Point],
+        moveset: tuple[Node],
         heuristic: CostFunc,
         real_cost: CostFunc,
         custom_constraint=None,
@@ -82,13 +83,13 @@ class AStar:
             path.reverse()
         return path
 
-    def search(self, start: Point, goal: Point, result_order_from_start: bool = False):
+    def search(self, start: Node, goal: Node, result_order_from_start: bool = False):
         fringe = PriorityQueue()
         fringe.put([0, start])
-        came_from: Dict[Point, Optional[Point]] = {start: None}
-        g_cost: DefaultDict[Point, float] = defaultdict(lambda: np.inf)
+        came_from: Dict[Node, Optional[Node]] = {start: None}
+        g_cost: DefaultDict[Node, float] = defaultdict(lambda: np.inf)
         g_cost[start] = 0
-        f_cost: Dict[Point, float] = {start: 0}
+        f_cost: Dict[Node, float] = {start: self.h(map, start, goal)}
 
         while not fringe.empty():
             cur = fringe.get()[1]
@@ -101,7 +102,7 @@ class AStar:
                     g_cost,
                     f_cost,
                 ]
-            for next in self.neighbors(self, cur):
+            for next in self.neighbors(self.map, cur, self.moveset, self.constraint):
                 new_g_cost = g_cost[cur] + self.g(self.map, cur, next)
                 if new_g_cost < g_cost[next]:
                     # new_to_goal = np.array([i - j for (i, j) in zip(next, goal)])
@@ -116,7 +117,7 @@ class AStar:
 
 
 # %%
-def real_cost(map: np.ndarray, _from: Point, _to: Point) -> float:
+def real_cost(map: np.ndarray, _from: Node, _to: Node) -> float:
     x1, y1 = _from
     x2, y2 = _to
     delta = map[y1, x1] - map[y2, x2]
@@ -126,30 +127,29 @@ def real_cost(map: np.ndarray, _from: Point, _to: Point) -> float:
 
 
 # %%
-def manhattan(map: np.ndarray, _from: Point, _to: Point) -> float:
+def manhattan(map: np.ndarray, _from: Node, _to: Node) -> float:
     return abs(_from[0] - _to[0]) + abs(_from[1] - _to[1])
 
 
-def euclid(map: np.ndarray, _from: Point, _to: Point) -> float:
+def euclid(map: np.ndarray, _from: Node, _to: Node) -> float:
     x1, y1 = _from
     x2, y2 = _to
     return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 
-def euclid_squared(map: np.ndarray, _from: Point, _to: Point) -> float:
+def euclid_squared(map: np.ndarray, _from: Node, _to: Node) -> float:
     return (_from[0] - _to[0]) ** 2 + (_from[1] - _to[1]) ** 2
 
 
-def ucs_fallback(map: np.ndarray, _from: Point, _to: Point) -> float:
+def ucs_fallback(map: np.ndarray, _from: Node, _to: Node) -> float:
     return 0
 
 
-def chebyshev(map: np.ndarray, _from: Point, _to: Point) -> float:
+def chebyshev(map: np.ndarray, _from: Node, _to: Node) -> float:
     return max(abs(_from[0] - _to[0]), abs(_from[1] - _to[1]))
 
 
-# Don't know how this works >-<
-def chebyshev_3d(map: np.ndarray, _from: Point, _to: Point) -> float:
+def chebyshev_3d(map: np.ndarray, _from: Node, _to: Node) -> float:
     return max(
         abs(_from[0] - _to[0]),
         abs(_from[1] - _to[1]),
@@ -157,13 +157,13 @@ def chebyshev_3d(map: np.ndarray, _from: Point, _to: Point) -> float:
     )
 
 
-def octile(map: np.ndarray, _from: Point, _to: Point) -> float:
+def octile(map: np.ndarray, _from: Node, _to: Node) -> float:
     dx = abs(_from[0] - _to[0])
     dy = abs(_from[1] - _to[1])
     return dx + dy + (math.sqrt(2) - 2) * min(dx, dy)
 
 
-def euclid_3d(map: np.ndarray, _from: Point, _to: Point) -> float:
+def euclid_3d(map: np.ndarray, _from: Node, _to: Node) -> float:
     x1, y1 = _from
     x2, y2 = _to
     a = (x1 - x2) ** 2 + (y1 - y2) ** 2
@@ -171,7 +171,7 @@ def euclid_3d(map: np.ndarray, _from: Point, _to: Point) -> float:
     return math.sqrt(a + b)
 
 
-def diagonal_3d(map: np.ndarray, _from: Point, _to: Point) -> float:
+def diagonal_3d(map: np.ndarray, _from: Node, _to: Node) -> float:
     D1, D2, D3 = (1, math.sqrt(2), math.sqrt(3))
     x1, y1 = _from
     z1 = map[y1, x1]
@@ -184,7 +184,7 @@ def diagonal_3d(map: np.ndarray, _from: Point, _to: Point) -> float:
     return (D3 - D2) * dmin + (D2 - D1) * dmid + D1 * dmax
 
 
-def weighted_manhattan(map: np.ndarray, _from: Point, _to: Point) -> float:
+def weighted_manhattan(map: np.ndarray, _from: Node, _to: Node) -> float:
     x1, y1 = _from
     z1 = map[y1, x1]
     x2, y2 = _to
@@ -196,7 +196,7 @@ def weighted_manhattan(map: np.ndarray, _from: Point, _to: Point) -> float:
 from functools import wraps
 from time import time
 
-custom_constraint = [(limit_constraint, {"limit": limit})]
+custom_constraint = [(under_limit, {"limit": limit})]
 
 
 def timing(f):
@@ -205,13 +205,12 @@ def timing(f):
         ts = time()
         result = f(*args, **kw)
         te = time()
-        print("Elapsed: %2.4f sec" % (te - ts))
-        return result
+        return result, (te - ts)
 
     return wrap
 
 
-def display_to_img(img: Image.Image, path: list[Point], show=True, save_to_file=None):
+def display_to_img(img: Image.Image, path: list[Node], show=True, save_to_file=None):
     for point in path:
         img.putpixel(point, ImageColor.getrgb("red"))
     if show:
@@ -220,7 +219,14 @@ def display_to_img(img: Image.Image, path: list[Point], show=True, save_to_file=
         img.save(save_to_file)
 
 
-def test(heuristic: CostFunc, start, goal, timer=True, show=True, save=None):
+def test(
+    heuristic: CostFunc,
+    start=start,
+    goal=goal,
+    show=False,
+    save_img=None,
+    save_txt=None,
+):
     a_star = AStar(
         map,
         grid_neighbors,
@@ -230,58 +236,55 @@ def test(heuristic: CostFunc, start, goal, timer=True, show=True, save=None):
         custom_constraint,
     )
     try:
-        path, g_cost, f_cost = (
-            timing(a_star.search)(start, goal) if timer else a_star.search(start, goal)
-        )
+        (path, g_cost, f_cost), time_result = timing(a_star.search)(start, goal)
         print(
             f"""[{heuristic.__name__}] From {start} to {goal} with limit = {limit}
+    Elapsed: {time_result}s
     Total cost: {f_cost[goal]}
     Examined nodes: {len(f_cost)}
     Path nodes: {len(path)}
     """
         )
-        if show or save:
+        if show or save_img:
             # for point in f_cost.keys():
             #     color = ImageColor.getrgb("yellow")
-            #     img.putpixel(point, color)
+            #     result.putpixel(point, color)
+            result = img.copy()
             for point in path:
-                img.putpixel(point, ImageColor.getrgb("red"))
+                result.putpixel(point, ImageColor.getrgb("red"))
         if show:
-            img.show()
-        if save:
-            img.save(save)
+            result.show()
+            result.close()
+        if save_img:
+            result.save(save_img)
+            result.close()
+        if save_txt:
+            with open(save_txt, "w") as f:
+                f.write(f"{f_cost[goal]:.2f}\n")
+                f.write(f"{len(f_cost)}\n")
     except Exception as e:
         print(e)
 
 
 # %%
-s = (0, 255)
-g = (255, 255)
-test(real_cost, s, g, show=True)
-print(real_cost(map, s, g))
-print(euclid(map, s, g))
+from threading import Thread
 
-# %%
-# def limit_constraint(map, cur: Point, neighbor: Point, **kargs) -> bool:
-#     x1, y1 = cur
-#     x2, y2 = neighbor
-#     limit = kargs["limit"]
-#     return abs(map[y1, x1] - map[y2, x2]) <= limit
+heuristics = [
+    real_cost,
+    ucs_fallback,
+    euclid,
+    euclid_3d,
+    euclid_squared,
+    chebyshev,
+    chebyshev_3d,
+    octile,
+    manhattan,
+    weighted_manhattan,
+    diagonal_3d,
+]
 
-
-# def in_bounds_constraint(map, neighbor: Point) -> bool:
-#     x, y = neighbor
-#     y_limit, x_limit = map.shape
-#     return 0 <= x < x_limit and 0 <= y < y_limit
-
-
-# print(f"limit = {limit}")
-# for y in range(map.shape[0]):
-#     for x in range(map.shape[1]):
-#         cur = (x, y)
-#         for move in EIGHT_DIR:
-#             neighbor = tuple(i + j for i, j in zip(cur, move))
-#             if in_bounds_constraint(map, neighbor):
-#                 if not limit_constraint(map, cur, neighbor, limit=limit):
-#                     img.putpixel(neighbor, ImageColor.getrgb("yellow"))
-# img.show()
+for i, h in enumerate(heuristics):
+    img_dir = f"./out/map{i}.bmp"
+    txt_dir = f"./out/output{i}.txt"
+    kwargs = {"heuristic": h, "save_img": img_dir, "save_txt": txt_dir}
+    Thread(target=test, kwargs=kwargs).start()

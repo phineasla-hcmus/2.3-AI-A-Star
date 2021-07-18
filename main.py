@@ -283,10 +283,10 @@ heuristics = [
     diagonal_3d,
 ]
 
-# for i, h in enumerate(heuristics):
-#     img_dir = f"./out/map{i+1}.bmp"
-#     txt_dir = f"./out/output{i+1}.txt"
-#     kwargs = {"heuristic": h, "save_img": img_dir, "save_txt": txt_dir}
-#     Thread(target=test, kwargs=kwargs).start()
+for i, h in enumerate(heuristics):
+    img_dir = f"./out/map{i+1}.bmp"
+    txt_dir = f"./out/output{i+1}.txt"
+    kwargs = {"heuristic": h, "save_img": img_dir, "save_txt": txt_dir}
+    Thread(target=test, kwargs=kwargs).start()
 
-test(euclid_3d, (0, 0), (511, 511), 10, True)
+# test(euclid_3d, (0, 0), (511, 511), 10, True)

@@ -108,7 +108,7 @@ class ALT:
     def h(self, _from, _to):
         # for each landmark, abs(landmark_dis[from] - landmark_dis[to]), then get max
         return max(
-            abs(landmark[_from[1], _from[0]] - landmark[_to[1], to[0]])
+            abs(landmark[_from[1], _from[0]] - landmark[_to[1], _to[0]])
             for landmark in self.landmarks.values()
         )
 

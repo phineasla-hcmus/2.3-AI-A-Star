@@ -58,7 +58,6 @@ class AStar:
 
         while not fringe.empty():
             cur = fringe.get()[1]
-            # cur_to_goal = np.array([i - j for (i, j) in zip(cur, goal)])
             if cur == goal:
                 return [
                     self.reconstruct_path(
@@ -70,9 +69,6 @@ class AStar:
             for next in self.neighbors(self.map, cur, self.moveset, self.constraint):
                 new_g_cost = g_cost[cur] + self.g(self.map, cur, next)
                 if new_g_cost < g_cost[next]:
-                    # new_to_goal = np.array([i - j for (i, j) in zip(next, goal)])
-                    # cross = abs(np.cross(cur_to_goal, new_to_goal))
-                    # f_cost[next] += cross * 0.001
                     g_cost[next] = new_g_cost
                     f_cost[next] = new_g_cost + self.h(self.map, next, goal)
                     came_from[next] = cur  # Set "next neighbor" parent to cur

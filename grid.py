@@ -42,7 +42,7 @@ def generate_graph(map: np.ndarray, dirs, limit):
     return graph
 
 
-graph = np.asarray(generate_graph(map, EIGHT_DIR, 20), object)
+graph = np.asarray(generate_graph(map, EIGHT_DIR, 5), object)
 # graph = generate_graph(map, EIGHT_DIR, 10)
 
 # %%

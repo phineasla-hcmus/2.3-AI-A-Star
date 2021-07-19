@@ -5,13 +5,13 @@ import re
 from util import *
 from queue import PriorityQueue
 from collections import defaultdict
-from PIL import Image, ImageOps, ImageColor
 from typing import Dict, DefaultDict, Optional
+from PIL import Image, ImageOps, ImageColor, ImageDraw
 
 
 with open("input.txt", "r") as f:
     start, goal, [limit] = [
-        Node(int(i) for i in re.findall(r"\d+", f.readline())) for j in range(3)
+        tuple(int(i) for i in re.findall(r"\d+", f.readline())) for j in range(3)
     ]
 
 img = Image.open("./img/map.bmp")
@@ -30,9 +30,9 @@ class AStar:
         real_cost: CostFunc,
         custom_constraint=None,
     ) -> None:
+        self.map = map
         self.h = heuristic
         self.g = real_cost
-        self.map = map
         self.neighbors = neighbor_finder
         self.moveset = moveset
         self.constraint = custom_constraint
@@ -77,15 +77,6 @@ class AStar:
         raise Exception("No solution found")
 
 
-def display_to_img(img: Image.Image, path: list[Node], show=True, save_to_file=None):
-    for point in path:
-        img.putpixel(point, ImageColor.getrgb("red"))
-    if show:
-        img.show()
-    if save_to_file:
-        img.save(save_to_file)
-
-
 def test(
     heuristic: CostFunc,
     start=start,
@@ -115,14 +106,13 @@ def test(
     """
         )
         if show or save_img:
-            # for point in f_cost.keys():
-            #     color = ImageColor.getrgb("yellow")
-            #     result.putpixel(point, color)
-            result = img.copy()
-            for point in path:
-                result.putpixel(point, ImageColor.getrgb("red"))
+            result = Image.new("RGBA", img.size, (0, 0, 0, 0))
+            draw = ImageDraw.Draw(result)
+            draw.point([node for node in f_cost.keys()], (0, 0, 255, 100))
+            draw.point(path, "red")
+
         if show:
-            result.show()
+            Image.alpha_composite(img, result).show()
             result.close()
         if save_img:
             result.save(save_img)
@@ -136,26 +126,12 @@ def test(
 
 
 # %%
-from threading import Thread
+# from threading import Thread
 
-heuristics = [
-    real_cost,
-    ucs_fallback,
-    euclid,
-    euclid_3d,
-    euclid_squared,
-    chebyshev,
-    chebyshev_3d,
-    octile,
-    manhattan,
-    weighted_manhattan,
-    diagonal_3d,
-]
+# for i, h in enumerate(heuristics):
+#     img_dir = f"./out/map{i+1}.bmp"
+#     txt_dir = f"./out/output{i+1}.txt"
+#     kwargs = {"heuristic": h, "save_img": img_dir, "save_txt": txt_dir}
+#     Thread(target=test, kwargs=kwargs).start()
 
-for i, h in enumerate(heuristics):
-    img_dir = f"./out/map{i+1}.bmp"
-    txt_dir = f"./out/output{i+1}.txt"
-    kwargs = {"heuristic": h, "save_img": img_dir, "save_txt": txt_dir}
-    Thread(target=test, kwargs=kwargs).start()
-
-# test(euclid_3d, (0, 0), (511, 511), 10, True)
+# test(euclid_3d, show=True)

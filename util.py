@@ -59,6 +59,7 @@ def euclid(map: np.ndarray, _from: Node, _to: Node) -> float:
     return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 
+# Extremely inadmissible heuristic
 def euclid_squared(map: np.ndarray, _from: Node, _to: Node) -> float:
     return (_from[0] - _to[0]) ** 2 + (_from[1] - _to[1]) ** 2
 

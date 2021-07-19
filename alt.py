@@ -3,7 +3,7 @@ from util import *
 from queue import PriorityQueue
 from collections import defaultdict
 from typing import Dict, DefaultDict, Optional
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageColor
 
 
 def dijkstra(
@@ -51,27 +51,25 @@ class ALT:
     def __init__(
         self,
         map: np.ndarray,
-        moveset: tuple[Node],
         neighbor_finder,
-        heuristic,
-        real_cost,
+        moveset: tuple[Node],
+        real_cost: CostFunc,
         custom_constraint=None,
     ) -> None:
         self.map = map
-        self.moveset = moveset
-        self.neighbors = neighbor_finder
-        self.landmarks = {}
-        self.landmark_heursitic = heuristic
         self.g = real_cost
+        self.neighbors = neighbor_finder
+        self.moveset = moveset
         self.constraint = custom_constraint
+        self.landmarks = {}
 
-    def init_landmarks(self, landmark_coords: list[Node]):
+    def init_landmarks(self, landmark_coords: list[Node], cost: CostFunc):
         self.landmarks = {
             landmark: dijkstra(
                 landmark,
                 self.map,
                 self.moveset,
-                self.landmark_heursitic,
+                cost,
                 self.neighbors,
                 self.constraint,
             )
@@ -140,45 +138,3 @@ class ALT:
                     fringe.put([f_cost[next], next])
         # Open set is empty but goal was never reached
         raise Exception("No solution found")
-
-
-img = Image.open("./img/map.bmp")
-grayscale = ImageOps.grayscale(img)
-map = np.array(grayscale).astype(int)
-
-heuristic = real_cost
-start = (0, 0)
-goal = (511, 511)
-limit = 10
-
-astar = ALT(
-    map,
-    EIGHT_DIR,
-    grid_neighbors,
-    heuristic,
-    real_cost,
-    [(under_limit, {"limit": limit})],
-)
-# Compute landmark with predefined limit
-# time_took = timing(astar.init_landmarks)(default_landmarks(map))
-# print(f"Elapsed: {time_took}s")
-# astar.save_landmarks("landmarks")
-astar.load_landmarks("landmarks.npz")
-(path, g_cost, f_cost), time_result = timing(astar.search)(start, goal)
-print(
-    f"""[{heuristic.__name__}] From {start} to {goal} with limit = {limit}
-    Elapsed: {time_result}s
-    Total cost: {f_cost[goal]}
-    Examined nodes: {len(f_cost)}
-    Path nodes: {len(path)}
-    """
-)
-
-# Pick n nodes as landmarks
-function precompute_landmarks(landmark_nodes):
-    landmark_distances = empty array
-    for each landmark in landmark_nodes:
-        # Compute distances between landmarks and all nodes
-        landmark_distance = dijkstra(landmark) 
-        landmark_distances.append(landmark_distance)
-

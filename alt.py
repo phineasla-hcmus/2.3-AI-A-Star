@@ -85,8 +85,9 @@ class ALT:
             for landmark, distance in data.items():
                 self.landmarks[tuple(json.loads(landmark))] = distance
 
-    def save_landmarks(self, file):
-        np.savez(
+    def save_landmarks(self, file, compressed=True):
+        save = np.savez_compressed if compressed else np.savez
+        save(
             file,
             **{
                 json.dumps(landmark): distance
@@ -158,7 +159,7 @@ astar = ALT(
     real_cost,
     [(under_limit, {"limit": limit})],
 )
-
+# Compute landmark with predefined limit
 # time_took = timing(astar.init_landmarks)(default_landmarks(map))
 # print(f"Elapsed: {time_took}s")
 # astar.save_landmarks("landmarks")
@@ -172,3 +173,12 @@ print(
     Path nodes: {len(path)}
     """
 )
+
+# Pick n nodes as landmarks
+function precompute_landmarks(landmark_nodes):
+    landmark_distances = empty array
+    for each landmark in landmark_nodes:
+        # Compute distances between landmarks and all nodes
+        landmark_distance = dijkstra(landmark) 
+        landmark_distances.append(landmark_distance)
+

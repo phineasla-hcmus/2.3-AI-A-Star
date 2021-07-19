@@ -1,22 +1,10 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
-import re
 from util import *
 from queue import PriorityQueue
 from collections import defaultdict
 from typing import Dict, DefaultDict, Optional
-from PIL import Image, ImageOps, ImageColor, ImageDraw
-
-
-with open("input.txt", "r") as f:
-    start, goal, [limit] = [
-        tuple(int(i) for i in re.findall(r"\d+", f.readline())) for j in range(3)
-    ]
-
-img = Image.open("./img/map.bmp")
-grayscale = ImageOps.grayscale(img)
-map = np.array(grayscale).astype(int)
 
 
 # %%
@@ -77,53 +65,62 @@ class AStar:
         raise Exception("No solution found")
 
 
-def test(
-    heuristic: CostFunc,
-    start=start,
-    goal=goal,
-    limit=limit,
-    show=False,
-    save_img=None,
-    save_txt=None,
-):
-    custom_constraint = [(under_limit, {"limit": limit})]
-    a_star = AStar(
-        map,
-        grid_neighbors,
-        EIGHT_DIR,
-        heuristic,
-        real_cost,
-        custom_constraint,
-    )
-    try:
-        (path, g_cost, f_cost), time_result = timing(a_star.search)(start, goal)
-        print(
-            f"""[{heuristic.__name__}] From {start} to {goal} with limit = {limit}
-    Elapsed: {time_result}s
-    Total cost: {f_cost[goal]}
-    Examined nodes: {len(f_cost)}
-    Path nodes: {len(path)}
-    """
-        )
-        if show or save_img:
-            result = Image.new("RGBA", img.size, (0, 0, 0, 0))
-            draw = ImageDraw.Draw(result)
-            draw.point([node for node in f_cost.keys()], (0, 0, 255, 100))
-            draw.point(path, "red")
+# from PIL import Image, ImageOps, ImageColor, ImageDraw
+# with open("input.txt", "r") as f:
+#     start, goal, [limit] = [
+#         tuple(int(i) for i in re.findall(r"\d+", f.readline())) for j in range(3)
+#     ]
 
-        if show:
-            Image.alpha_composite(img, result).show()
-            result.close()
-        if save_img:
-            result.save(save_img)
-            result.close()
-        if save_txt:
-            with open(save_txt, "w") as f:
-                f.write(f"{f_cost[goal]:.2f}\n")
-                f.write(f"{len(f_cost)}\n")
-    except Exception as e:
-        print(e)
+# img = Image.open("./img/map.bmp")
+# grayscale = ImageOps.grayscale(img)
+# map = np.array(grayscale).astype(int)
 
+# def test(
+#     heuristic: CostFunc,
+#     start=start,
+#     goal=goal,
+#     limit=limit,
+#     show=False,
+#     save_img=None,
+#     save_txt=None,
+# ):
+#     custom_constraint = [(under_limit, {"limit": limit})]
+#     a_star = AStar(
+#         map,
+#         grid_neighbors,
+#         EIGHT_DIR,
+#         heuristic,
+#         real_cost,
+#         custom_constraint,
+#     )
+#     try:
+#         (path, g_cost, f_cost), time_result = timing(a_star.search)(start, goal)
+#         print(
+#             f"""[{heuristic.__name__}] From {start} to {goal} with limit = {limit}
+#     Elapsed: {time_result}s
+#     Total cost: {f_cost[goal]}
+#     Examined nodes: {len(f_cost)}
+#     Path nodes: {len(path)}
+#     """
+#         )
+#         if show or save_img:
+#             result = Image.new("RGBA", img.size, (0, 0, 0, 0))
+#             draw = ImageDraw.Draw(result)
+#             draw.point([node for node in f_cost.keys()], (0, 0, 255, 100))
+#             draw.point(path, "red")
+
+#         if show:
+#             Image.alpha_composite(img, result).show()
+#             result.close()
+#         if save_img:
+#             result.save(save_img)
+#             result.close()
+#         if save_txt:
+#             with open(save_txt, "w") as f:
+#                 f.write(f"{f_cost[goal]:.2f}\n")
+#                 f.write(f"{len(f_cost)}\n")
+#     except Exception as e:
+#         print(e)
 
 # %%
 # from threading import Thread

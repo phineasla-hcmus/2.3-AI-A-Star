@@ -42,7 +42,7 @@ class AStar:
         came_from: Dict[Node, Optional[Node]] = {start: None}
         g_cost: DefaultDict[Node, float] = defaultdict(lambda: np.inf)
         g_cost[start] = 0
-        f_cost: Dict[Node, float] = {start: self.h(map, start, goal)}
+        f_cost: Dict[Node, float] = {start: self.h(self.map, start, goal)}
 
         while not fringe.empty():
             cur = fringe.get()[1]

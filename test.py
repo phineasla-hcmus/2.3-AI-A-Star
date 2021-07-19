@@ -23,10 +23,10 @@ TRANSPARENCY = 0.25
 OPACITY = int(255 * TRANSPARENCY)
 PATH_COLOR = ImageColor.getrgb("red")
 SPACE_COLOR = (*ImageColor.getrgb("yellow"), OPACITY)
-DRAW_SPACE = True
+DRAW_SPACE = False
 
-OUT_IMG_DIR = "./benchmark/"
-OUT_TXT_DIR = None
+OUT_IMG_DIR = "./out/"
+OUT_TXT_DIR = "./out/"
 
 HEURISTICS = [
     ucs_fallback,
@@ -82,8 +82,10 @@ def test(
 
 def astar_test():
     for i, h in enumerate(HEURISTICS):
-        img_dir = f"{OUT_IMG_DIR}{h.__name__}.bmp" if OUT_IMG_DIR else None
-        txt_dir = f"{OUT_TXT_DIR}{h.__name__}.txt" if OUT_TXT_DIR else None
+        # img_dir = f"{OUT_IMG_DIR}{h.__name__}.bmp" if OUT_IMG_DIR else None
+        # txt_dir = f"{OUT_TXT_DIR}{h.__name__}.txt" if OUT_TXT_DIR else None
+        img_dir = f"{OUT_IMG_DIR}map{i+1}.bmp" if OUT_IMG_DIR else None
+        txt_dir = f"{OUT_TXT_DIR}output{i+1}.txt" if OUT_TXT_DIR else None
         astar = AStar(map, grid_neighbors, EIGHT_DIR, h, real_cost, custom_constraint)
         kwargs = {
             "pathfinding": astar,
@@ -105,7 +107,12 @@ def alt_test():
         alt.init_landmarks(default_landmarks(map), real_cost)
     else:
         alt.load_landmarks("./landmarks.npz")
-    test(alt, "ALT", save_img=f"{OUT_IMG_DIR}ALT.bmp" if OUT_IMG_DIR else None)
+    test(
+        alt,
+        "ALT",
+        save_img=f"{OUT_IMG_DIR}ALT.bmp" if OUT_IMG_DIR else None,
+        save_txt=f"{OUT_IMG_DIR}ALT.txt" if OUT_TXT_DIR else None,
+    )
 
 
 if __name__ == "__main__":

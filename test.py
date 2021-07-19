@@ -23,6 +23,7 @@ TRANSPARENCY = 0.25
 OPACITY = int(255 * TRANSPARENCY)
 PATH_COLOR = ImageColor.getrgb("red")
 SPACE_COLOR = (*ImageColor.getrgb("yellow"), OPACITY)
+# Draw expanded nodes onto the image
 DRAW_SPACE = False
 
 OUT_IMG_DIR = "./out/"
@@ -110,8 +111,8 @@ def alt_test():
     test(
         alt,
         "ALT",
-        save_img=f"{OUT_IMG_DIR}ALT.bmp" if OUT_IMG_DIR else None,
-        save_txt=f"{OUT_IMG_DIR}ALT.txt" if OUT_TXT_DIR else None,
+        save_img=f"{OUT_IMG_DIR}map11.bmp" if OUT_IMG_DIR else None,
+        save_txt=f"{OUT_IMG_DIR}output11.txt" if OUT_TXT_DIR else None,
     )
 
 

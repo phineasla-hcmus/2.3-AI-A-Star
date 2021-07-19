@@ -112,7 +112,9 @@ def weighted_manhattan(map: np.ndarray, _from: Node, _to: Node) -> float:
     z1 = map[y1, x1]
     x2, y2 = _to
     z2 = map[y2, x2]
-    return sum(abs(a - b) / (a + b) for a, b in ((x1, x2), (y1, y2), (z1, z2)))
+    return sum(
+        abs(a - b) / (a + b) if a + b else 0 for a, b in ((x1, x2), (y1, y2), (z1, z2))
+    )
 
 
 def timing(f):

@@ -3,7 +3,7 @@ from util import *
 from queue import PriorityQueue
 from collections import defaultdict
 from typing import Dict, DefaultDict, Optional
-from PIL import Image, ImageOps, ImageColor
+from PIL import Image, ImageOps
 
 
 def dijkstra(

@@ -31,10 +31,10 @@ def default_landmarks(map: np.ndarray):
         (0, h // 2),
         (0, h - 1),
         (w // 2, 0),
-        # (w - 1, 0),
-        # (w - 1, h - 1),
-        # (w - 1, h // 2),
-        # (w // 2, h - 1),
+        (w - 1, 0),
+        (w - 1, h - 1),
+        (w - 1, h // 2),
+        (w // 2, h - 1),
     ]
 
 
@@ -83,7 +83,7 @@ class ALT:
             self.landmarks.clear()
         with np.load(file) as data:
             for landmark, distance in data.items():
-                self.landmarks[json.loads(landmark)] = distance
+                self.landmarks[tuple(json.loads(landmark))] = distance
 
     def save_landmarks(self, file):
         np.savez(
@@ -118,7 +118,7 @@ class ALT:
         came_from: Dict[Node, Optional[Node]] = {start: None}
         g_cost: DefaultDict[Node, float] = defaultdict(lambda: np.inf)
         g_cost[start] = 0
-        f_cost: Dict[Node, float] = {start: self.h(map, start, goal)}
+        f_cost: Dict[Node, float] = {start: self.h(start, goal)}
 
         while not fringe.empty():
             cur = fringe.get()[1]
@@ -145,16 +145,30 @@ img = Image.open("./img/map.bmp")
 grayscale = ImageOps.grayscale(img)
 map = np.array(grayscale).astype(int)
 
+heuristic = real_cost
+start = (0, 0)
+goal = (511, 511)
+limit = 10
+
 astar = ALT(
     map,
     EIGHT_DIR,
     grid_neighbors,
+    heuristic,
     real_cost,
-    real_cost,
-    [(under_limit, {"limit": 10})],
+    [(under_limit, {"limit": limit})],
 )
 
-astar.init_landmarks(default_landmarks(map))
-astar.save_landmarks("landmarks")
-# astar.load_landmarks("landmarks.npz")
-# path, g_cost, f_cost = astar.search((0, 0), (511, 511))
+# time_took = timing(astar.init_landmarks)(default_landmarks(map))
+# print(f"Elapsed: {time_took}s")
+# astar.save_landmarks("landmarks")
+astar.load_landmarks("landmarks.npz")
+(path, g_cost, f_cost), time_result = timing(astar.search)(start, goal)
+print(
+    f"""[{heuristic.__name__}] From {start} to {goal} with limit = {limit}
+    Elapsed: {time_result}s
+    Total cost: {f_cost[goal]}
+    Examined nodes: {len(f_cost)}
+    Path nodes: {len(path)}
+    """
+)

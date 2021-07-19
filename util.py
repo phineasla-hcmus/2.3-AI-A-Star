@@ -1,6 +1,9 @@
 import math
 import numpy as np
+from time import time
+from functools import wraps
 from typing import Callable
+
 
 Node = tuple[int, int]
 CostFunc = Callable[[np.ndarray, Node, Node], float]
@@ -42,3 +45,17 @@ def real_cost(map: np.ndarray, _from: Node, _to: Node) -> float:
     return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) + (
         0.5 * np.sign(delta) + 1
     ) * abs(delta)
+
+
+def timing(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        if result is None:
+            return te - ts
+        else:
+            return result, (te - ts)
+
+    return wrap

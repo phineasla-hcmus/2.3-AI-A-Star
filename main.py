@@ -4,10 +4,10 @@
 import re
 import math
 import numpy as np
-from PIL import Image, ImageOps, ImageColor
 from queue import PriorityQueue
-from typing import Callable, Dict, DefaultDict, Generator, Optional
 from collections import defaultdict
+from PIL import Image, ImageOps, ImageColor
+from typing import Callable, Dict, DefaultDict, Optional
 
 Node = tuple[int, int]
 CostFunc = Callable[[np.ndarray, Node, Node], float]
@@ -23,7 +23,6 @@ with open("input.txt", "r") as f:
     ]
 
 img = Image.open("./img/map.bmp")
-# img = Image.open("./img/test.png")
 grayscale = ImageOps.grayscale(img)
 map = np.array(grayscale).astype(int)
 

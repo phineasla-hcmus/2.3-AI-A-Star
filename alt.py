@@ -62,6 +62,7 @@ class ALT:
         self.constraint = custom_constraint
         self.landmarks = {}
 
+    # Precompute distance from each landmark in landmark_coords to all nodes
     def init_landmarks(self, landmark_coords: list[Node], cost: CostFunc):
         self.landmarks = {
             landmark: dijkstra(

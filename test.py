@@ -102,12 +102,15 @@ def astar_test():
 
 def alt_test():
     alt = ALT(map, grid_neighbors, EIGHT_DIR, real_cost, custom_constraint)
+    landmarks_file = f"./landmarks8_limit{limit}.npz"
     # Precomputed data was generated with limit = 10
-    if not os.path.exists("./landmarks.npz") or limit != 10:
+    if not os.path.exists(landmarks_file):
+        # For reference, 8 landmarks with 512x512 map was generated in 4 minutes
         print("PRECOMPUTED DATA NOT FOUND, GENERATING NEW ONE, CAN TAKE A WHILE...")
         alt.init_landmarks(default_landmarks(map), real_cost)
+        alt.save_landmarks(landmarks_file)
     else:
-        alt.load_landmarks("./landmarks.npz")
+        alt.load_landmarks(landmarks_file)
     test(
         alt,
         "ALT",

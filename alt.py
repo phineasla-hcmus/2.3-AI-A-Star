@@ -27,13 +27,25 @@ def default_landmarks(map: np.ndarray):
     h, w = map.shape
     return [
         (0, 0),
+        # (0, h // 4),
         (0, h // 2),
+        # (0, h * 3 // 4),
         (0, h - 1),
+        # (w // 4, 0),
         (w // 2, 0),
+        # (w * 3 // 4, 0),
         (w - 1, 0),
-        (w - 1, h - 1),
+        # (w - 1, h // 4),
         (w - 1, h // 2),
+        # (w - 1, h * 3 // 4),
+        (w - 1, h - 1),
+        # (w // 4, h - 1),
         (w // 2, h - 1),
+        # (w * 3 // 4, h - 1),
+        # (w // 2, h // 2),
+        # (w // 2, h * 3 // 4),
+        # (w * 3 // 4, h // 2),
+        # (w * 3 // 4, h * 3 // 4),
     ]
 
 
@@ -63,13 +75,13 @@ class ALT:
         self.landmarks = {}
 
     # Precompute distance from each landmark in landmark_coords to all nodes
-    def init_landmarks(self, landmark_coords: list[Node], cost: CostFunc):
+    def init_landmarks(self, landmark_coords: list[Node], cost: CostFunc = None):
         self.landmarks = {
             landmark: dijkstra(
                 landmark,
                 self.map,
                 self.moveset,
-                cost,
+                self.g if cost is None else cost,
                 self.neighbors,
                 self.constraint,
             )
